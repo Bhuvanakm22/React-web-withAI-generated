@@ -19,18 +19,25 @@ function LoginPage() {
   useEffect(() => {
     if (!loading && isAuthenticated && user && !checking) {
       setChecking(true);
+      // First check if user exists in our database
       supabase
         .from("users")
-        .update({ updated_at: new Date().toISOString() })
+        .select("id")
         .eq("user_id", user.id)
-        .then(async ({ error: updateError }) => {
-          if (updateError) {
+        .maybeSingle()
+        .then(async ({ data, error: selectError }) => {
+          if (selectError || !data) {
             // User not registered — sign out so they can retry or register
             await supabase.auth.signOut();
             setError("Account not found. Please register first.");
             setChecking(false);
             return;
           }
+          // User exists — update updated_at and redirect
+          await supabase
+            .from("users")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("user_id", user.id);
           navigate({ to: "/home" });
         });
     }
