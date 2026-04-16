@@ -13,63 +13,113 @@ function RegisterPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
-  const [registering, setRegistering] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  // Track whether the user just completed OAuth on this page
+  const [justSignedIn, setJustSignedIn] = useState(false);
 
-  // After Google sign-in, auto-register the user
+  // Check if user arrived here after OAuth redirect (has hash/token in URL)
   useEffect(() => {
-    if (!loading && isAuthenticated && user && !registering) {
-      setRegistering(true);
-      const name = user.user_metadata?.full_name || user.user_metadata?.name || "User";
-      const email = user.email || "";
+    const hash = window.location.hash;
+    const search = window.location.search;
+    if (hash.includes("access_token") || search.includes("code=")) {
+      setJustSignedIn(true);
+    }
+  }, []);
 
+  // After Google sign-in on this page, auto-register the user
+  useEffect(() => {
+    if (loading || !isAuthenticated || !user || processing) return;
+
+    // If user was already logged in before visiting this page, check if already registered
+    if (!justSignedIn) {
+      setProcessing(true);
       supabase
         .from("users")
-        .insert({
-          user_id: user.id,
-          name,
-          email,
-        })
-        .then(({ error: insertError }) => {
-          if (insertError) {
-          if (insertError.code === "23505") {
-              navigate({ to: "/" });
-              return;
-            }
-            setError(insertError.message);
-            setRegistering(false);
-            return;
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            // Already registered — go to welcome
+            navigate({ to: "/" });
+          } else {
+            // Authenticated but not registered — do the insert
+            registerUser();
           }
-          navigate({ to: "/" });
         });
+      return;
     }
-  }, [loading, isAuthenticated, user, navigate, registering]);
+
+    // User just signed in via OAuth on this page — register them
+    registerUser();
+  }, [loading, isAuthenticated, user, justSignedIn]);
+
+  const registerUser = async () => {
+    if (!user) return;
+    setProcessing(true);
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || "User";
+    const email = user.email || "";
+
+    const { error: insertError } = await supabase.from("users").insert({
+      user_id: user.id,
+      name,
+      email,
+    });
+
+    if (insertError) {
+      if (insertError.code === "23505") {
+        // Already registered
+        navigate({ to: "/" });
+        return;
+      }
+      setError(insertError.message);
+      setProcessing(false);
+      return;
+    }
+
+    // Successfully registered — sign out so they can use Sign In flow
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
 
   const handleGoogleSignIn = async () => {
     setError(null);
     setSigningIn(true);
+    setJustSignedIn(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin + "/register",
       });
       if (result.error) {
         setError(result.error.message || "Sign in failed");
+        setJustSignedIn(false);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "An unexpected error occurred");
+      setJustSignedIn(false);
     } finally {
       setSigningIn(false);
     }
   };
 
-  if (loading || registering) {
+  if (loading || processing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-sm text-muted-foreground">
-            {registering ? "Setting up your account…" : "Loading…"}
+            {processing ? "Setting up your account…" : "Loading…"}
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // If user is already authenticated, don't show the form (processing will handle redirect)
+  if (isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
