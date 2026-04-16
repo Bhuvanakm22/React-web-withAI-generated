@@ -84,11 +84,12 @@ function RegisterPage() {
   };
 
   // After OAuth redirect, if user is now authenticated, auto-check registration
-  // Only auto-trigger if this looks like an OAuth callback (hash contains tokens)
-  const isOAuthCallback = typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.search.includes('code='));
-  if (isOAuthCallback && isAuthenticated && user && !alreadyRegistered && !registrationSuccess && !processing && !error) {
-    setTimeout(() => handleRegister(), 0);
-  }
+  useEffect(() => {
+    if (!loading && isAuthenticated && user && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      handleRegister();
+    }
+  }, [loading, isAuthenticated, user]);
 
   const handleOkClick = async () => {
     await supabase.auth.signOut();
