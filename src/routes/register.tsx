@@ -39,7 +39,7 @@ function RegisterPage() {
             setRegistering(false);
             return;
           }
-          navigate({ to: "/home" });
+          navigate({ to: "/" });
         });
     }
   }, [loading, isAuthenticated, user, navigate, registering]);
