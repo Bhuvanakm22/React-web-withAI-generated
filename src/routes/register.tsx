@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -16,6 +16,7 @@ function RegisterPage() {
   const [processing, setProcessing] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const hasCheckedRef = useRef(false);
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -83,11 +84,12 @@ function RegisterPage() {
   };
 
   // After OAuth redirect, if user is now authenticated, auto-check registration
-  // Only auto-trigger if this looks like an OAuth callback (hash contains tokens)
-  const isOAuthCallback = typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.search.includes('code='));
-  if (isOAuthCallback && isAuthenticated && user && !alreadyRegistered && !registrationSuccess && !processing && !error) {
-    setTimeout(() => handleRegister(), 0);
-  }
+  useEffect(() => {
+    if (!loading && isAuthenticated && user && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      handleRegister();
+    }
+  }, [loading, isAuthenticated, user]);
 
   const handleOkClick = async () => {
     await supabase.auth.signOut();
