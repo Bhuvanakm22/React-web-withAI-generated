@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -14,49 +14,50 @@ function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [processing, setProcessing] = useState(false);
-  // Track whether the user just completed OAuth on this page
-  const [justSignedIn, setJustSignedIn] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
-  // Check if user arrived here after OAuth redirect (has hash/token in URL)
-  useEffect(() => {
-    const hash = window.location.hash;
-    const search = window.location.search;
-    if (hash.includes("access_token") || search.includes("code=")) {
-      setJustSignedIn(true);
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setSigningIn(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/register",
+      });
+      if (result.error) {
+        setError(result.error.message || "Sign in failed");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "An unexpected error occurred");
+    } finally {
+      setSigningIn(false);
     }
-  }, []);
+  };
 
-  // After Google sign-in on this page, auto-register the user
-  useEffect(() => {
-    if (loading || !isAuthenticated || !user || processing) return;
-
-    // If user was already logged in before visiting this page, check if already registered
-    if (!justSignedIn) {
-      setProcessing(true);
-      supabase
-        .from("users")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            // Already registered — go to welcome
-            navigate({ to: "/" });
-          } else {
-            // Authenticated but not registered — do the insert
-            registerUser();
-          }
-        });
+  const handleRegister = async () => {
+    if (!user) {
+      // Not authenticated yet — trigger Google sign-in
+      await handleGoogleSignIn();
       return;
     }
 
-    // User just signed in via OAuth on this page — register them
-    registerUser();
-  }, [loading, isAuthenticated, user, justSignedIn]);
-
-  const registerUser = async () => {
-    if (!user) return;
     setProcessing(true);
+    setError(null);
+
+    // Check if already registered
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      setAlreadyRegistered(true);
+      setProcessing(false);
+      return;
+    }
+
+    // Insert new user
     const name = user.user_metadata?.full_name || user.user_metadata?.name || "User";
     const email = user.email || "";
 
@@ -68,8 +69,8 @@ function RegisterPage() {
 
     if (insertError) {
       if (insertError.code === "23505") {
-        // Already registered
-        navigate({ to: "/" });
+        setAlreadyRegistered(true);
+        setProcessing(false);
         return;
       }
       setError(insertError.message);
@@ -77,46 +78,27 @@ function RegisterPage() {
       return;
     }
 
-    // Successfully registered — sign out so they can use Sign In flow
+    setRegistrationSuccess(true);
+    setProcessing(false);
+  };
+
+  // After OAuth redirect, if user is now authenticated, auto-check registration
+  if (isAuthenticated && user && !alreadyRegistered && !registrationSuccess && !processing && !error) {
+    // Use a microtask to avoid calling setState during render
+    setTimeout(() => handleRegister(), 0);
+  }
+
+  const handleOkClick = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };
 
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    setSigningIn(true);
-    setJustSignedIn(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/register",
-      });
-      if (result.error) {
-        setError(result.error.message || "Sign in failed");
-        setJustSignedIn(false);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "An unexpected error occurred");
-      setJustSignedIn(false);
-    } finally {
-      setSigningIn(false);
-    }
+  const handleSuccessOk = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
   };
 
-  if (loading || processing) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">
-            {processing ? "Setting up your account…" : "Loading…"}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // If user is already authenticated, don't show the form (processing will handle redirect)
-  if (isAuthenticated) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -124,6 +106,72 @@ function RegisterPage() {
     );
   }
 
+  if (processing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Setting up your account…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Already registered message
+  if (alreadyRegistered) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <svg className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Already Registered
+          </h1>
+          <p className="text-muted-foreground">
+            You have already registered with us. Please use the Sign In button to access your account.
+          </p>
+          <button
+            onClick={handleOkClick}
+            className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Registration success message
+  if (registrationSuccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+            <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Registration Successful!
+          </h1>
+          <p className="text-muted-foreground">
+            Your account has been created. Please use the Sign In button to log in.
+          </p>
+          <button
+            onClick={handleSuccessOk}
+            className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: show registration form
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
