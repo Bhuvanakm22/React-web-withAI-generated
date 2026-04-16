@@ -16,6 +16,7 @@ function RegisterPage() {
   const [processing, setProcessing] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const hasCheckedRef = useRef(false);
 
   const handleGoogleSignIn = async () => {
     setError(null);
