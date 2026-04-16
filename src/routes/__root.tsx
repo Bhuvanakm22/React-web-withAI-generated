@@ -29,14 +29,16 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "React web app with AI" },
+      { name: "description", content: "Sample React web app creation with the Lovable AI" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "React web app with AI" },
+      { property: "og:description", content: "Sample React web app creation with the Lovable AI" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "React web app with AI" },
+      { name: "twitter:description", content: "Sample React web app creation with the Lovable AI" },
     ],
     links: [
       {
