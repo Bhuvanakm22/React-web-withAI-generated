@@ -18,41 +18,45 @@ function HomePage() {
   const { user, loading, signOut, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (loading) return;
+
+    if (!isAuthenticated || !user) {
       navigate({ to: "/login" });
+      return;
     }
-  }, [loading, isAuthenticated, navigate]);
 
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from("users")
-        .select("name, email, created_at, updated_at")
-        .eq("user_id", user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) {
-            setLoadingProfile(false);
-            return;
-          }
-          setProfile(data);
-          setLoadingProfile(false);
-        });
-    }
-  }, [user]);
+    supabase
+      .from("users")
+      .select("name, email, created_at, updated_at")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          // Not a registered user — send back to welcome
+          navigate({ to: "/" });
+          return;
+        }
+        setProfile(data);
+        setVerified(true);
+      });
+  }, [loading, isAuthenticated, user, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate({ to: "/" });
   };
 
-  if (loading || loadingProfile) {
+  // Block all content until auth + profile are fully verified
+  if (!verified) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Verifying your account…</p>
+        </div>
       </div>
     );
   }
@@ -71,20 +75,17 @@ function HomePage() {
 
         <div className="rounded-lg border border-border bg-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Profile Details</h2>
-
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Name</span>
               <span className="text-sm font-medium text-foreground">{profile?.name}</span>
             </div>
             <div className="border-t border-border" />
-
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Email</span>
               <span className="text-sm font-medium text-foreground">{profile?.email}</span>
             </div>
             <div className="border-t border-border" />
-
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Registered</span>
               <span className="text-sm font-medium text-foreground">
@@ -92,7 +93,6 @@ function HomePage() {
               </span>
             </div>
             <div className="border-t border-border" />
-
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Last Login</span>
               <span className="text-sm font-medium text-foreground">
