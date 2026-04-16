@@ -83,8 +83,9 @@ function RegisterPage() {
   };
 
   // After OAuth redirect, if user is now authenticated, auto-check registration
-  if (isAuthenticated && user && !alreadyRegistered && !registrationSuccess && !processing && !error) {
-    // Use a microtask to avoid calling setState during render
+  // Only auto-trigger if this looks like an OAuth callback (hash contains tokens)
+  const isOAuthCallback = typeof window !== 'undefined' && (window.location.hash.includes('access_token') || window.location.search.includes('code='));
+  if (isOAuthCallback && isAuthenticated && user && !alreadyRegistered && !registrationSuccess && !processing && !error) {
     setTimeout(() => handleRegister(), 0);
   }
 

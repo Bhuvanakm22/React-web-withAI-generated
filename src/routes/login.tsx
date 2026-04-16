@@ -23,9 +23,10 @@ function LoginPage() {
         .from("users")
         .update({ updated_at: new Date().toISOString() })
         .eq("user_id", user.id)
-        .then(({ error: updateError }) => {
+        .then(async ({ error: updateError }) => {
           if (updateError) {
-            // User might not be registered yet
+            // User not registered — sign out so they can retry or register
+            await supabase.auth.signOut();
             setError("Account not found. Please register first.");
             setChecking(false);
             return;
