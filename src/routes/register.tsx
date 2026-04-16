@@ -213,6 +213,11 @@ function RegisterPage() {
             Sign in
           </a>
         </p>
+        <p className="text-center text-sm text-muted-foreground">
+          <a href="/" className="text-muted-foreground hover:text-foreground hover:underline">
+            ← Back to Welcome
+          </a>
+        </p>
       </div>
     </div>
   );
