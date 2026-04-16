@@ -31,9 +31,8 @@ function RegisterPage() {
         })
         .then(({ error: insertError }) => {
           if (insertError) {
-            if (insertError.code === "23505") {
-              // Already registered, go to home
-              navigate({ to: "/home" });
+          if (insertError.code === "23505") {
+              navigate({ to: "/" });
               return;
             }
             setError(insertError.message);
