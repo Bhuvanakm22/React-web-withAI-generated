@@ -52,7 +52,7 @@ function Index() {
             to="/login"
             className="group relative overflow-hidden rounded-2xl border border-border bg-primary p-6 text-left text-primary-foreground shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100 text-blue-600" />
             <div className="relative flex items-start justify-between">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground/15 backdrop-blur-sm">
                 <LogIn className="h-5 w-5" />
