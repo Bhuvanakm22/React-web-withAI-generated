@@ -39,8 +39,8 @@ function Index() {
         </div>
 
         {/* Heading */}
-        <h1 className="bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl md:text-7xl">
-          Hello there 👋
+        <h1 className="bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text font-bold tracking-tight text-transparent sm:text-6xl md:text-7xl text-6xl">
+          Welcome👋
         </h1>
         <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
           Sign in to pick up where you left off, or create a new account in seconds to get started.
