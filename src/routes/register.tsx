@@ -76,7 +76,8 @@ function RegisterPage() {
         setProcessing(false);
         return;
       }
-      setError(insertError.message);
+      console.error("Registration insert failed:", insertError);
+      setError("Registration failed. Please try again.");
       setProcessing(false);
       return;
     }
