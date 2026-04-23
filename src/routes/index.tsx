@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, LogIn, UserPlus, Sparkles, Shield, Zap } from "lucide-react";
+import { ArrowRight, LogIn, UserPlus, Sparkles, Mail } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
+import { TopNav } from "@/components/top-nav";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -8,7 +9,9 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <PageShell>
+    <>
+      <TopNav />
+      <PageShell>
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center">
         {/* Badge */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
@@ -61,22 +64,19 @@ function Index() {
           </Link>
         </div>
 
-        {/* Feature highlights */}
-        <div className="mt-12 grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card/50 p-3 backdrop-blur-sm">
-            <Shield className="h-4 w-4 shrink-0 text-primary" />
-            <span className="text-xs font-medium text-foreground">Secure by default</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card/50 p-3 backdrop-blur-sm">
-            <Zap className="h-4 w-4 shrink-0 text-primary" />
-            <span className="text-xs font-medium text-foreground">Lightning fast</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card/50 p-3 backdrop-blur-sm">
-            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-            <span className="text-xs font-medium text-foreground">Beautifully simple</span>
-          </div>
+        {/* Contact us link */}
+        <div className="mt-12">
+          <Link
+            to="/contact"
+            className="group inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+          >
+            <Mail className="h-4 w-4 text-primary" />
+            <span>Contact us</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+          </Link>
         </div>
       </div>
-    </PageShell>
+      </PageShell>
+    </>
   );
 }
